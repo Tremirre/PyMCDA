@@ -3,6 +3,7 @@ import typing
 import numpy as np
 
 from mcda.common import aggregate_inter_alternative_stats
+from mcda.order import get_ordering_from_value_array
 from mcda.types import FeatureSpec, Ordering
 
 
@@ -99,15 +100,7 @@ def get_promethee_two_ordering(
     :return: The ordering of the alternatives.
     """
     net_flow = positive_flow - negative_flow
-    sorted_net_desc_args = list(np.argsort(net_flow)[::-1])
-    sorted_net_desc = np.sort(net_flow)[::-1]
-    nodes = []
-    for i, (net, arg) in enumerate(zip(sorted_net_desc, sorted_net_desc_args)):
-        if i == 0 or net != sorted_net_desc[i - 1]:
-            nodes.append([arg])
-        else:
-            nodes[-1].append(arg)
-    return nodes
+    return get_ordering_from_value_array(net_flow, ascending=False)
 
 
 class PrometheeSolver:
