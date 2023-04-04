@@ -51,3 +51,7 @@ def aggregate_inter_alternative_stats(
     aggregated_stat = np.sum(aggregated_stat, axis=0)
     aggregated_stat /= weigh_array.sum()
     return aggregated_stat
+
+
+def map_to_unit_interval_2d(x: np.ndarray) -> np.ndarray:
+    return (x - x.min(axis=0)) / (x.max(axis=0) - x.min(axis=0))

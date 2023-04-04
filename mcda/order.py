@@ -45,7 +45,7 @@ def get_kendall_distance(ordering_1: Ordering, ordering_2: Ordering) -> float:
 def get_kendall_tau(ordering_1: Ordering, ordering_2: Ordering) -> float:
     """
     Get the Kendall tau between two orderings.
-    
+
     :param ordering_1: ordering in the form of a list of preference nodes (e.g. [[0, 1], [2], [3]] for a 4-node graph),
     :param ordering_2: ordering in the form of a list of preference nodes (e.g. [[0, 1], [2], [3]] for a 4-node graph),
     :return: kendall tau between the two orderings
