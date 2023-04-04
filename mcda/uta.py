@@ -86,7 +86,7 @@ class LinearUTASolver:
         if self.problem.status != 1:
             raise RuntimeError("Solver must be solved before accessing the results")
         linear_coeff = (
-            self.weights
+            self.alternative_values
             / (self.alternatives.max(axis=0) - self.alternatives.min(axis=0))
         ) * (self.is_gain - 1 * (1 - self.is_gain))
         standalone_coeff = self.alternatives.min(
