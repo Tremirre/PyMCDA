@@ -69,7 +69,7 @@ class LinearUTASolver:
         values = []
         for alternative in self.shifted_alternatives:
             value = sum(
-                alternative[k] * self.weights[k]
+                alternative[k] * self.weights[k].varValue
                 for k in range(self.shifted_alternatives.shape[1])
             )
             values.append(value)
