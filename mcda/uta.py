@@ -136,8 +136,8 @@ class LinearUTASolver:
             if self.problem.status != 1:
                 return
             inconsistent_constraints = [
-                bin_var.name
-                for bin_var in self.bin_vars.values()
+                bin_var_tag
+                for bin_var_tag, bin_var in self.bin_vars.items()
                 if bin_var.varValue == 1
             ]
             if inconsistent_constraints:
