@@ -9,6 +9,30 @@ from mcda.types import Ordering
 from mcda.exceptions import FailedToSolveException, UTAInconsistencyException
 
 
+def piecewise_utility_function(
+    x: float, weights: List[pulp.LpVariable | float]
+) -> pulp.LpAffineExpression | float:
+    """
+    Creates a piecewise utility function for the given value of the criterion.
+    Assumes number of pieces equal to the number of weights.
+
+    :param x: value of the criterion
+    :param weights: list of weights for the criteria, where each weight is a float or a pulp.LpVariable
+    :return: piecewise utility function for the given value of the criterion (or the value itself if weights are concrete values)
+    """
+    if not weights:
+        raise ValueError("Weights must not be empty")
+    if len(weights) == 1:
+        return weights[0] * x
+    piece_length = 1 / len(weights)
+    x_tick = int(x // piece_length)
+    base = piece_length * sum(weights[j] for j in range(x_tick))
+    if x_tick == len(weights):
+        return base
+    fraction = (x % piece_length) * weights[x_tick]
+    return base + fraction
+
+
 class LinearUTASolver:
     def __init__(
         self,
@@ -16,6 +40,7 @@ class LinearUTASolver:
         is_gain: np.ndarray,
         preferences: List[Tuple[int, int]],
         indifferences: List[Tuple[int, int]],
+        num_pieces: int = 1,
         espilon: float = 1e-6,
     ) -> None:
         """
@@ -32,7 +57,10 @@ class LinearUTASolver:
         self.alternatives = alternatives
         self.is_gain = is_gain
         self.shifted_alternatives = map_to_unit_interval_2d(alternatives)
-        self.shifted_alternatives -= 2 * is_gain * self.shifted_alternatives
+        self.shifted_alternatives[:, ~is_gain] = (
+            1 - self.shifted_alternatives[:, ~is_gain]
+        )
+
         for p_i, p_j in preferences:
             if p_i == p_j:
                 raise ValueError(
@@ -43,18 +71,48 @@ class LinearUTASolver:
                     raise ValueError(
                         f"Preference and indifference relations must be disjoint - ({p_i}, {p_j}) and ({i_i}, {i_j})"
                     )
+        if num_pieces < 1:
+            raise ValueError("Number of pieces must be at least 1")
+        self.num_pieces = num_pieces
         self.preferences = preferences
         self.indifferences = indifferences
         self.epsilon = espilon
-        self.problem = None  # pulp.LpProblem("UTA", pulp.LpMinimize)
+        self.problem = None
         bin_vars_names = [(i, j) for i, j in preferences + indifferences]
         self.bin_vars = {
             (i, j): pulp.LpVariable(f"V{i}{j}", cat="Binary") for i, j in bin_vars_names
         }
-        self.weights = pulp.LpVariable.dicts(
-            "w", range(alternatives.shape[1]), lowBound=0, upBound=1
-        )
+        self.weights = [
+            [
+                pulp.LpVariable(f"w{i}{j}", lowBound=0, upBound=1)
+                for j in range(num_pieces)
+            ]
+            for i in range(alternatives.shape[1])
+        ]
         self.all_inconsistent_constraints = []
+
+    def utility_functions_as_sample_points(self, sample_size: int = 100) -> np.ndarray:
+        """
+        Returns the utility functions as sample points.
+
+        :raises RuntimeError: when the solver has not been solved yet
+        :return: matrix of utility functions as sample points,
+            where each row is a utility function and each column is a sample point
+        """
+        if self.problem.status != 1:
+            raise RuntimeError("Solver must be solved before accessing the results")
+        space = np.linspace(0, 1, sample_size)
+        utility_functions = []
+        for sub_weights in self.weights:
+            utility_functions.append(
+                np.array(
+                    [
+                        piecewise_utility_function(v, [w.value() for w in sub_weights])
+                        for v in space
+                    ]
+                )
+            )
+        return np.array(utility_functions)
 
     @property
     def alternative_values(self) -> np.ndarray:
@@ -68,33 +126,15 @@ class LinearUTASolver:
             raise RuntimeError("Solver must be solved before accessing the results")
         values = []
         for alternative in self.shifted_alternatives:
-            value = sum(
-                alternative[k] * self.weights[k].varValue
-                for k in range(self.shifted_alternatives.shape[1])
+            values.append(
+                sum(
+                    piecewise_utility_function(
+                        attr_value, [w.value() for w in self.weights[attr_idx]]
+                    )
+                    for attr_idx, attr_value in enumerate(alternative)
+                )
             )
-            values.append(value)
         return np.array(values)
-
-    @property
-    def attribute_linear_function_params(self) -> dict[str, np.ndarray]:
-        """
-        Returns the linear function parameters for each attribute.
-
-        :raises RuntimeError: when the solver has not been solved yet
-        :return: dictionary with keys "slopes" and "horizontal_intercepts" containing the linear function parameters
-        """
-        if self.problem.status != 1:
-            raise RuntimeError("Solver must be solved before accessing the results")
-        linear_coeff = (
-            np.array(
-                [self.weights[k].varValue for k in range(self.alternatives.shape[1])]
-            )
-            / (self.alternatives.max(axis=0) - self.alternatives.min(axis=0))
-        ) * (self.is_gain - 1 * (1 - self.is_gain))
-        standalone_coeff = self.alternatives.min(
-            axis=0
-        ) * self.is_gain + self.alternatives.max(axis=0) * (1 - self.is_gain)
-        return {"slopes": linear_coeff, "horizontal_intercepts": standalone_coeff}
 
     def _alternative_constraints(self, idx: int) -> pulp.LpAffineExpression:
         """
@@ -104,8 +144,8 @@ class LinearUTASolver:
         :return: additive value function for the alternative with index `idx`
         """
         return sum(
-            self.shifted_alternatives[idx, k] * self.weights[k]
-            for k in range(self.alternatives.shape[1])
+            piecewise_utility_function(attr_value, self.weights[attr_idx])
+            for attr_idx, attr_value in enumerate(self.shifted_alternatives[idx])
         )
 
     def _reset_state(self) -> None:
@@ -114,7 +154,9 @@ class LinearUTASolver:
         """
         self.problem = pulp.LpProblem("UTA", pulp.LpMinimize)
         self.problem += pulp.lpSum(self.bin_vars.values())
-        self.problem += sum(self.weights.values()) == 1
+        self.problem += (
+            sum(sum(subweights) for subweights in self.weights) == self.num_pieces
+        )
         self.all_inconsistent_constraints.clear()
 
     def _find_all_inconsistent_preferences(self) -> None:
