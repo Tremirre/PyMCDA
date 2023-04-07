@@ -33,7 +33,7 @@ def piecewise_utility_function(
     return base + fraction
 
 
-class LinearUTASolver:
+class UTASolver:
     def __init__(
         self,
         alternatives: np.ndarray,
