@@ -116,6 +116,7 @@ class PrometheeSolver:
         """
         :param alternatives: array of alternatives, where each row is an alternative and each column is a criterion.
         :param feature_specs: list of feature specs, one for each criterion.
+
         :param order_func: function that takes the negative and positive flow and returns the ordering of the alternatives,
             or a string that is either "promethee_one" or "promethee_two" (will use the default implementation), defaults to "promethee_one".
         """

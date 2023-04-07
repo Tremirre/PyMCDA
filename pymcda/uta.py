@@ -1,7 +1,7 @@
 import pulp
 import numpy as np
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from pymcda.common import map_to_unit_interval_2d
 from pymcda.order import get_ordering_from_value_array
@@ -10,8 +10,8 @@ from pymcda.exceptions import FailedToSolveException, UTAInconsistencyException
 
 
 def piecewise_utility_function(
-    x: float, weights: List[pulp.LpVariable | float]
-) -> pulp.LpAffineExpression | float:
+    x: float, weights: List[Union[pulp.LpVariable, float]]
+) -> Union[pulp.LpAffineExpression, float]:
     """
     Creates a piecewise utility function for the given value of the criterion.
     Assumes number of pieces equal to the number of weights.
