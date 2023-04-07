@@ -3,8 +3,8 @@ import numpy as np
 from functools import partial
 from typing import List
 
-from mcda.types import FeatureSpec
-from mcda.common import aggregate_inter_alternative_stats
+from pymcda.types import FeatureSpec
+from pymcda.common import aggregate_inter_alternative_stats
 
 
 def calculate_concordance(diff: float, spec: FeatureSpec, profile: int) -> float:

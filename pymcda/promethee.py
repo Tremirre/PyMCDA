@@ -2,9 +2,9 @@ import typing
 
 import numpy as np
 
-from mcda.common import aggregate_inter_alternative_stats
-from mcda.order import get_ordering_from_value_array
-from mcda.types import FeatureSpec, Ordering
+from pymcda.common import aggregate_inter_alternative_stats
+from pymcda.order import get_ordering_from_value_array
+from pymcda.types import FeatureSpec, Ordering
 
 
 def calculate_preference(diff: float, spec: FeatureSpec, profile: int) -> float:

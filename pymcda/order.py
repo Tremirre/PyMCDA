@@ -1,6 +1,6 @@
 import numpy as np
 
-from mcda.types import Ordering
+from pymcda.types import Ordering
 
 
 def get_pref_matrix(ordering: Ordering) -> np.ndarray:

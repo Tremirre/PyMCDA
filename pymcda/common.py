@@ -2,7 +2,7 @@ import typing
 
 import numpy as np
 
-from mcda.types import FeatureSpec
+from pymcda.types import FeatureSpec
 
 
 def aggregate_inter_alternative_stats(

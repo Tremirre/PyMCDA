@@ -3,10 +3,10 @@ import numpy as np
 
 from typing import List, Tuple
 
-from mcda.common import map_to_unit_interval_2d
-from mcda.order import get_ordering_from_value_array
-from mcda.types import Ordering
-from mcda.exceptions import FailedToSolveException, UTAInconsistencyException
+from pymcda.common import map_to_unit_interval_2d
+from pymcda.order import get_ordering_from_value_array
+from pymcda.types import Ordering
+from pymcda.exceptions import FailedToSolveException, UTAInconsistencyException
 
 
 def piecewise_utility_function(

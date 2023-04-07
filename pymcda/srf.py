@@ -1,6 +1,6 @@
 import numpy as np
 
-from mcda.types import Ordering
+from pymcda.types import Ordering
 
 
 def calc_srf(ranking: Ordering, relative_importance: float) -> np.ndarray:
