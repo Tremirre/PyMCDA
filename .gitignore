@@ -1,4 +1,6 @@
 notebooks/
 tmp/
+dist/
 
+**/*.egg-info/
 **/*.pyc
